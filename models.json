@@ -1,0 +1,24 @@
+{
+    "models" : {
+        "gpt-4o-mini" : {
+            "model_price": [0.15, 0.60],
+            "is_primary": false,
+            "description" : "5-nano한테 대체된 모델"
+        },
+        "gpt-5-mini" : {
+            "model_price": [0.25, 2.0],
+            "is_primary": false,
+            "description" : "주력 모델"
+        },
+        "gpt-5-nano" : {
+            "model_price": [0.05, 0.40],
+            "is_primary": true,
+            "description" : "서브 에이전트"
+        },
+        "gpt-5" : {
+            "model_price": [1.25, 10.0],
+            "is_primary": false,
+            "description" : "고수준 작업 시 사용"
+        }
+    }
+}

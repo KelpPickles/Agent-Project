@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import asyncio
+from services.openai_service import get_model
 
 from config import TOKEN
 
@@ -16,6 +17,13 @@ bot = commands.Bot(
 @bot.event
 async def on_ready():
     print(f"{bot.user} 로그인 완료")
+    try:
+        result = get_model()
+        await bot.change_presence(
+            activity=discord.Game(name=f"{result['model_name']} 사용 중 {result['model_price']}")
+        )
+    except Exception as e:
+        print(e)
 
 
 async def load_cogs():

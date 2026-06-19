@@ -8,6 +8,49 @@ client = AsyncOpenAI(
   api_key=OPENAI_API_KEY
 )
 
+# MODEL LOAD
+model = None
+model_price = None
+json_name = 'models.json'
+model_json = None
+with open(json_name, 'r', encoding='utf-8') as f:
+  model_json = json.load(f)
+
+if model_json is None:
+  raise RuntimeError(f"{json_name}을 불러올 수 없습니다.")
+
+model_names = model_json['models']
+for name in model_names:
+  if model_json['models'][name]['is_primary']:
+    model = name
+    model_price = model_json['models'][name]['model_price']
+
+print(f"현재 선택된 모델 : {model} ({model_price})")
+
+def get_model():
+  return {'model_name': model,
+          "model_price": model_price}
+
+def get_model_list():
+  return list(model_names.keys())
+
+def change_model(model_name):
+  global model, model_price
+  if model_name in model_names:
+    model = model_name
+    model_price = model_json['models'][model_name]['model_price']
+
+    return {'status': True,
+            'model_name': model_name,
+            'model_price': model_price}
+  else:
+    return {'status': False}
+
+total_usage = 0
+
+def calc_usage(prompt_tokens, completion_tokens, model_price):
+  return (prompt_tokens / 1_000_000) * model_price[0] + (completion_tokens / 1_000_000) * model_price[1]
+
 TOOLS_SCHEMA = [
   {
     "type": "function",
@@ -26,6 +69,7 @@ SYSTEM_PROMPT = f"""
 """
 
 async def generate_response(history) -> str:
+  global total_usage
   messages = [
     {
       "role": "system",
@@ -35,10 +79,11 @@ async def generate_response(history) -> str:
   ]
 
   response = await client.responses.create(
-    model="gpt-4o-mini",
+    model=model,
     input=messages,
     tools=TOOLS_SCHEMA
   )
+
 
   function_call = None
 
@@ -50,6 +95,8 @@ async def generate_response(history) -> str:
       break
   
   if function_call is None:
+    total_usage += calc_usage(response.usage.input_tokens, response.usage.output_tokens, model_price)
+    print(f"현재까지 사용량 : ${total_usage}")
     return response.output_text
   
   tool_name = function_call.name
@@ -70,7 +117,7 @@ async def generate_response(history) -> str:
   print("Tool Result:", tool_result)
 
   final_response = await client.responses.create(
-    model="gpt-4o-mini",
+    model=model,
     input=[
       *messages,
       {
@@ -90,5 +137,9 @@ async def generate_response(history) -> str:
       }
     ]
   )
+
+  total_usage += (calc_usage(response.usage.input_tokens, response.usage.output_tokens, model_price) 
+                 + calc_usage(final_response.usage.input_tokens, final_response.usage.output_tokens, model_price))
+  print(f"현재까지 사용량 : ${total_usage}")
 
   return final_response.output_text
