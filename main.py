@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from datetime import datetime
 import asyncio
 from services.openai_service import get_model
 
@@ -13,9 +14,11 @@ bot = commands.Bot(
     intents=intents
 )
 
+STARTUP = False
 
 @bot.event
 async def on_ready():
+    global STARTUP
     print(f"{bot.user} 로그인 완료")
     try:
         result = get_model()
@@ -24,6 +27,20 @@ async def on_ready():
         )
     except Exception as e:
         print(e)
+    
+    if STARTUP:
+        return
+    
+    STARTUP = True
+
+    channel = bot.get_channel(1518148680098648184)
+
+    if channel is not None:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        await channel.send(f"@everyone\n",
+                           f"**{bot.user}가 정상적으로 시작되었습니다.**\n",
+                           f"배포 시간: `{now}`",
+                           allowed_mentions=discord.AllowedMentions(everyone=True))
 
 
 async def load_cogs():
