@@ -56,6 +56,24 @@ TOOLS_SCHEMA = [
     "type": "function",
     "name": "get_current_time",
     "description": "사용자가 현재 시간, 날짜, 오늘이 몇 일인지 물어볼 때 사용한다."
+  },
+  {
+    "type": "function",
+    "name": "web_search",
+    "description": """
+    현재 정보가 필요하거나, 최신 뉴스, 실시간 정보, 모르는 개념을 조사해야 할 때 사용한다.
+    """,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "검색할 문장"
+        }
+      },
+      "required": ["query"],
+      "additionalProperties": False
+    }
   }
 ]
 
@@ -66,80 +84,95 @@ SYSTEM_PROMPT = f"""
 - 함수가 반드시 필요한 경우에만 호출한다.
 - 현재 시간을 묻는 질문에만 get_current_time을 사용한다.
 - 일반 대화나 자기소개에는 함수를 사용하지 않는다.
+
+web_search 사용 규칙:
+- 최신 정보가 필요한 경우 반드시 사용
+- 사용자의 질문에 대한 확신이 80% 미만이면 사용
+- 뉴스, 가격, API 변경사항, 버전 정보는 사용
+- 단순 상식은 사용하지 말 것
+- 위 모든 경우가 아님에도 사용자가 검색을 통한 결과를 원한다고 말할 경우 사용
 """
 
 async def generate_response(history) -> str:
-  global total_usage
-  messages = [
-    {
-      "role": "system",
-      "content": SYSTEM_PROMPT
-    },
-    *history
-  ]
+    global total_usage
 
-  response = await client.responses.create(
-    model=model,
-    input=messages,
-    tools=TOOLS_SCHEMA
-  )
-
-
-  function_call = None
-
-  for item in response.output:
-    print(item)
-
-    if item.type == "function_call":
-      function_call = item
-      break
-  
-  if function_call is None:
-    total_usage += calc_usage(response.usage.input_tokens, response.usage.output_tokens, model_price)
-    print(f"현재까지 사용량 : ${total_usage}")
-    return response.output_text
-  
-  tool_name = function_call.name
-
-  if tool_name not in TOOLS:
-    return f"알 수 없는 도구 : {tool_name}"
-  
-  try:
-    arguments = json.loads(function_call.arguments)
-  except Exception:
-    arguments = {}
-
-  print("Tool Call:", tool_name)
-  print("Arguments:", arguments)
-
-  tool_result = TOOLS[tool_name](**arguments)
-
-  print("Tool Result:", tool_result)
-
-  final_response = await client.responses.create(
-    model=model,
-    input=[
-      *messages,
-      {
-        "type": "function_call",
-        "call_id": function_call.call_id,
-        "name": tool_name,
-        "arguments": function_call.arguments
-      },
-
-      {
-        "type": "function_call_output",
-        "call_id": function_call.call_id,
-        "output": json.dumps(
-            tool_result,
-            ensure_ascii=False
-        )
-      }
+    conversation = [
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT
+        },
+        *history
     ]
-  )
 
-  total_usage += (calc_usage(response.usage.input_tokens, response.usage.output_tokens, model_price) 
-                 + calc_usage(final_response.usage.input_tokens, final_response.usage.output_tokens, model_price))
-  print(f"현재까지 사용량 : ${total_usage}")
+    while True:
 
-  return final_response.output_text
+        response = await client.responses.create(
+            model=model,
+            input=conversation,
+            tools=TOOLS_SCHEMA
+        )
+
+        total_usage += calc_usage(
+            response.usage.input_tokens,
+            response.usage.output_tokens,
+            model_price
+        )
+
+        # 모델이 생성한 모든 output을 대화에 추가
+        conversation.extend(response.output)
+
+        tool_calls = [
+            item
+            for item in response.output
+            if item.type == "function_call"
+        ]
+
+        # Tool Call이 없으면 최종 응답
+        if not tool_calls:
+            print(f"현재까지 사용량 : ${total_usage}")
+            return response.output_text
+
+        # Tool 실행
+        for tool_call in tool_calls:
+
+            tool_name = tool_call.name
+
+            print("Tool Call:", tool_name)
+
+            try:
+                arguments = json.loads(tool_call.arguments)
+            except Exception:
+                arguments = {}
+
+            print("Arguments:", arguments)
+
+            if tool_name not in TOOLS:
+
+                tool_result = {
+                    "error": f"알 수 없는 도구 : {tool_name}"
+                }
+
+            else:
+
+                try:
+                    tool_result = TOOLS[tool_name](**arguments)
+                except Exception as e:
+                    tool_result = {
+                        "error": str(e)
+                    }
+
+            print("Tool Result:", tool_result)
+
+            # Tool 결과를 conversation에 추가
+            conversation.append(
+                {
+                    "type": "function_call_output",
+                    "call_id": tool_call.call_id,
+                    "output": json.dumps(
+                        tool_result,
+                        ensure_ascii=False
+                    )
+                }
+            )
+
+        print(f"현재까지 사용량 : ${total_usage}")
