@@ -25,23 +25,23 @@ async def on_ready():
         await bot.change_presence(
             activity=discord.Game(name=f"{result['model_name']} 사용 중 {result['model_price']}")
         )
+
+        if STARTUP: 
+            return
+    
+        STARTUP = True
+        
+        channel = bot.get_channel(1518148680098648184)
+
+        if channel is not None:
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            await channel.send(f"@everyone\n"
+                            f"**{bot.user}가 정상적으로 시작되었습니다.**\n"
+                            f"배포 시간: `{now}`",
+                            allowed_mentions=discord.AllowedMentions(everyone=True))
+
     except Exception as e:
         print(e)
-    
-    if STARTUP:
-        return
-    
-    STARTUP = True
-
-    channel = bot.get_channel(1518148680098648184)
-
-    if channel is not None:
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        await channel.send(f"@everyone\n",
-                           f"**{bot.user}가 정상적으로 시작되었습니다.**\n",
-                           f"배포 시간: `{now}`",
-                           allowed_mentions=discord.AllowedMentions(everyone=True))
-
 
 async def load_cogs():
     await bot.load_extension("cogs.ping")
