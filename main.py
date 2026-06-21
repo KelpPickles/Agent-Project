@@ -19,7 +19,7 @@ STARTUP = False
 @bot.event
 async def on_ready():
     global STARTUP
-    print(f"{bot.user} 로그인 완료")
+    print(f"{bot.user} 로그인 완료.")
     try:
         result = get_model()
         await bot.change_presence(
