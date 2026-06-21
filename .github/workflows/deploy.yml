@@ -19,7 +19,7 @@ jobs:
           key: ${{ secrets.ORACLE_SSH_KEY }}
 
           script: |
-            cd /home/ubuntu/discord-ai-agent
+            cd /home/ubuntu/Agent-Project
             git pull origin main
 
             source venv/bin/activate
