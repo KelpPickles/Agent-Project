@@ -10,6 +10,7 @@ def get_connection():
 
 
 def create_long_memory_table():
+    print("[long_memory_tool] 장기기억 테이블 준비중")
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -24,6 +25,9 @@ def create_long_memory_table():
 
     conn.commit()
     conn.close()
+    print("[long_memory_tool] 장기기억 테이블 준비중.. 완료")
+    
+create_long_memory_table()
 
 def save_long_memory(content: str):
     conn = get_connection()
@@ -33,8 +37,8 @@ def save_long_memory(content: str):
         cursor.execute(
             """
             INSERT INTO long_memory (content)
-            VALUES (?, ?)
-            """, (content)
+            VALUES (?)
+            """, (content,)
         )
 
         conn.commit()

@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 import asyncio
 from services.openai_service import get_model
 
-from config import TOKEN
+from config import TOKEN, TEST_TOKEN
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -16,7 +16,7 @@ bot = commands.Bot(
 )
 
 STARTUP = False
-DEVELOP_MODE = False
+DEVELOP_MODE = True
 
 @bot.event
 async def on_ready():
@@ -34,15 +34,6 @@ async def on_ready():
         STARTUP = True
         
         channel = bot.get_channel(1518148680098648184)
-
-        if DEVELOP_MODE:
-            now = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S")
-            await channel.send(f"@everyone\n"
-                            f"**{bot.user}가 배포되었으나 개발모드입니다.**\n"
-                            f"배포 시간: `{now}`",
-                            allowed_mentions=discord.AllowedMentions(everyone=True))
-            await bot.close()
-            return
 
         if channel is not None:
             now = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S")
@@ -62,7 +53,10 @@ async def load_cogs():
 async def main():
     async with bot:
         await load_cogs()
-        await bot.start(TOKEN)
+        if DEVELOP_MODE:
+            await bot.start(TEST_TOKEN)
+        else:
+            await bot.start(TOKEN)
 
 
 asyncio.run(main())

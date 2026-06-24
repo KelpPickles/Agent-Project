@@ -84,7 +84,7 @@ TOOLS_SCHEMA = [
   },
   {
     "type": "function",
-    "name": "get_long_memory",
+    "name": "get_long_memories",
     "description": """
     Retrieve all long-term memories for the current user.
 
