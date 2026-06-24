@@ -1,7 +1,7 @@
 from openai import AsyncOpenAI
 from config import OPENAI_API_KEY
 from datetime import datetime
-from services.tool_manager import TOOLS
+from services.tool_manager import TOOLS, TOOLS_SCHEMA
 import json
 
 client = AsyncOpenAI(
@@ -50,32 +50,6 @@ total_usage = 0
 
 def calc_usage(prompt_tokens, completion_tokens, model_price):
   return (prompt_tokens / 1_000_000) * model_price[0] + (completion_tokens / 1_000_000) * model_price[1]
-
-TOOLS_SCHEMA = [
-  {
-    "type": "function",
-    "name": "get_current_time",
-    "description": "사용자가 현재 시간, 날짜, 오늘이 몇 일인지 물어볼 때 사용한다."
-  },
-  {
-    "type": "function",
-    "name": "web_search",
-    "description": """
-    현재 정보가 필요하거나, 최신 뉴스, 실시간 정보, 모르는 개념을 조사해야 할 때 사용한다.
-    """,
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "query": {
-          "type": "string",
-          "description": "검색할 문장"
-        }
-      },
-      "required": ["query"],
-      "additionalProperties": False
-    }
-  }
-]
 
 SYSTEM_PROMPT = f"""
 너는 디스코드 AI 에이전트다.

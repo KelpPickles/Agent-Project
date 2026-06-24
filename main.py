@@ -16,6 +16,7 @@ bot = commands.Bot(
 )
 
 STARTUP = False
+DEVELOP_MODE = True
 
 @bot.event
 async def on_ready():
@@ -33,6 +34,15 @@ async def on_ready():
         STARTUP = True
         
         channel = bot.get_channel(1518148680098648184)
+
+        if DEVELOP_MODE:
+            now = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S")
+            await channel.send(f"@everyone\n"
+                            f"**{bot.user}가 배포되었으나 개발모드입니다.**\n"
+                            f"배포 시간: `{now}`",
+                            allowed_mentions=discord.AllowedMentions(everyone=True))
+            await bot.close()
+            return
 
         if channel is not None:
             now = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S")
