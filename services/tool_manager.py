@@ -1,6 +1,8 @@
 from tools.time_tool import get_current_time
 from tools.tavily_tool import web_search
 from tools.long_memory_tool import save_long_memory, get_long_memories, delete_long_memory, update_long_memory
+from tools.read_file import read_file
+from tools.write_file import write_file
 
 TOOLS = {
   "get_current_time": get_current_time,
@@ -8,7 +10,9 @@ TOOLS = {
   "save_long_memory": save_long_memory,
   "get_long_memories": get_long_memories,
   "delete_long_memory": delete_long_memory,
-  "update_long_memory": update_long_memory
+  "update_long_memory": update_long_memory,
+  "read_file": read_file,
+  "write_file": write_file
 }
 
 TOOLS_SCHEMA = [
@@ -164,5 +168,51 @@ TOOLS_SCHEMA = [
         "required": ["memory_id", "content"],
         "additionalProperties": False
     }
-  },  
+  },
+  {
+    "type": "function",
+    "name": "read_file",
+    "description": """
+    Read a file stored in the workspace directory.
+    Use this whenever the user asks to read, summarize, anaylze, explain,
+    or inspect the contents of an existing file.
+    """,
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "filename": {
+              "type": "string",
+              "description": ("Relative path of the file inside the workspace directory."
+                              "Examples: 'notes.md', 'report.pdf', 'docs/text.txt'")
+            },
+        },
+        "required": ["filename"],
+        "additionalProperties": False
+    }
+  },
+  {
+    "type": "function",
+    "name": "write_file",
+    "description": """
+    Create or overwrite a file inside the workspace directory.
+    Use this when the user asks to save text as a file, generate a reports,
+    create markdown, JSON, source code, or any other text file.
+    """,
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "filename": {
+              "type": "string",
+              "description": ("Relative path of the file to create."
+                              "Examples: 'summary.md', 'code/main.py', 'data/output.json'")
+            },
+            "content": {
+              "type": "string",
+              "description": "The complete text content to write into the file."
+            }
+        },
+        "required": ["filename", "content"],
+        "additionalProperties": False
+    }
+  },
 ]

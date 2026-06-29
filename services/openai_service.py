@@ -51,6 +51,17 @@ total_usage = 0
 def calc_usage(prompt_tokens, completion_tokens, model_price):
   return (prompt_tokens / 1_000_000) * model_price[0] + (completion_tokens / 1_000_000) * model_price[1]
 
+def get_usage():
+   global total_usage
+
+   return total_usage
+
+def edit_usage(used_tokens):
+    global total_usage
+
+    total_usage = used_tokens
+    return f"total_usage를 {total_usage}로 갱신했습니다."
+
 SYSTEM_PROMPT = f"""
 너는 디스코드 AI 에이전트다.
 
@@ -70,6 +81,7 @@ web_search 사용 규칙:
 async def generate_response(history) -> str:
     global total_usage
 
+    generated_files = []
     conversation = [
         {
             "role": "system",
@@ -104,7 +116,10 @@ async def generate_response(history) -> str:
         # Tool Call이 없으면 최종 응답
         if not tool_calls:
             print(f"현재까지 사용량 : ${total_usage}")
-            return response.output_text
+            return {
+               "message" : response.output_text,
+               "files" : generated_files
+            } 
 
         # Tool 실행
         for tool_call in tool_calls:
@@ -130,6 +145,11 @@ async def generate_response(history) -> str:
 
                 try:
                     tool_result = TOOLS[tool_name](**arguments)
+
+                    if isinstance(tool_result, dict):
+                       if "path" in tool_result:
+                          generated_files.append(tool_result["path"])
+                
                 except Exception as e:
                     tool_result = {
                         "error": str(e)

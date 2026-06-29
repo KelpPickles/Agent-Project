@@ -1,8 +1,10 @@
 import discord
 from discord.ext import commands
-from services.openai_service import generate_response, change_model, get_model_list
+from services.openai_service import generate_response, change_model, get_model_list, get_usage, edit_usage
 from services.file_service import save_attachment
 from memory.memory_manager import MemoryManager
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 memory = MemoryManager()
 
@@ -30,6 +32,15 @@ class AI(commands.Cog):
   async def clear_memory(self, ctx):
     memory.clear_channel(ctx.guild.id, ctx.channel.id)
     await ctx.reply(f"({ctx.guild.id}, {ctx.channel.id})에 대한 기록 삭제를 요청했어요!")
+
+  @commands.command(name="토큰사용량")
+  async def token_usage(self, ctx):
+    await ctx.reply(f"현재까지 토큰 사용량은 ${get_usage()} 입니다.")
+
+  @commands.command(name="사용량수정")
+  async def edit_total_usage(self, ctx, usage):
+    res = edit_usage(usage)
+    await ctx.reply(res)
 
   @commands.Cog.listener()
   async def on_message(self, message):
@@ -75,16 +86,33 @@ class AI(commands.Cog):
     print(history)
 
     async with message.channel.typing():
-      response = await generate_response(history)
-
-    await message.reply(response[:1900])
+      try:
+        result = await generate_response(history)
+      except Exception as e:
+        print(e)
+    
+    try:
+      files = []
+      for path in result["files"]:
+        files.append(discord.File(path))
+      await message.reply(result["message"][:1900],
+                          files=files if files else None)
+    except Exception as e:
+      print(e)
 
     memory.add_message(
       guild_id=message.guild.id,
       channel_id=message.channel.id,
       role="assistant",
-      content=response
+      content=result["message"]
     )
+
+    channel = self.bot.get_channel(1521059636751368322)
+
+    if channel is not None:
+        now = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S")
+        await channel.send(f"**지금까지 사용한 비용은 ${get_usage()}입니다.**\n"
+                        f"응답시간: `{now}`")
 
 async def setup(bot):
   await bot.add_cog(AI(bot))

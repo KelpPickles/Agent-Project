@@ -3,7 +3,7 @@ from discord.ext import commands
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import asyncio
-from services.openai_service import get_model
+from services.openai_service import get_model, get_usage
 
 from config import TOKEN, TEST_TOKEN
 
