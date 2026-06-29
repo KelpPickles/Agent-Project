@@ -16,7 +16,7 @@ bot = commands.Bot(
 )
 
 STARTUP = False
-DEVELOP_MODE = True
+DEVELOP_MODE = False
 
 @bot.event
 async def on_ready():

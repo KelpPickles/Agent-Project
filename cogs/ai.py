@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from services.openai_service import generate_response, change_model, get_model_list
+from services.file_service import save_attachment
 from memory.memory_manager import MemoryManager
 
 memory = MemoryManager()
@@ -47,7 +48,13 @@ class AI(commands.Cog):
 
     if not prompt:
       return
-    
+
+    uploaded_files = []
+    for attachment in message.attachments:
+      path = await save_attachment(attachment)
+      uploaded_files.append(path)
+  
+    print(uploaded_files)
     print(prompt)
 
     memory.add_message(
