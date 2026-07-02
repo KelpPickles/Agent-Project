@@ -90,8 +90,10 @@ async def generate_response(history) -> str:
         *history
     ]
 
-    while True:
+    print("generate_response start")
 
+    while True:
+        print("API 호출 직전")
         response = await client.responses.create(
             model=model,
             input=conversation,
@@ -107,6 +109,7 @@ async def generate_response(history) -> str:
         # 모델이 생성한 모든 output을 대화에 추가
         conversation.extend(response.output)
 
+        print("tool_calls 준비")
         tool_calls = [
             item
             for item in response.output
@@ -121,8 +124,10 @@ async def generate_response(history) -> str:
                "files" : generated_files
             } 
 
+        print("Tool 실행 직전")
         # Tool 실행
         for tool_call in tool_calls:
+            print(f"{tool_call.name} Tool 실행 시작")
 
             tool_name = tool_call.name
 
