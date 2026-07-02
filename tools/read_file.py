@@ -5,6 +5,7 @@ import csv
 WORKSPACE = Path("workspace").resolve()
 
 def read_file(filename: str) -> str:
+    print(f"read_file called: {filename}")
     path = (WORKSPACE / filename).resolve()
 
     if not str(path).startswith(str(WORKSPACE)):
