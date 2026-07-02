@@ -59,12 +59,9 @@ class AI(commands.Cog):
 
     uploaded_files = []
 
-    print("업로드한 파일 읽어오는 중")
     for attachment in message.attachments:
         try:
-            print("attachment 읽는 중")
             path = await save_attachment(attachment)
-            print(f"attachment path : {path}")
             uploaded_files.append(path)
             print(f"Saved attachment: {path}")
         except Exception:
