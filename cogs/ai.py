@@ -5,6 +5,7 @@ from services.file_service import save_attachment
 from memory.memory_manager import MemoryManager
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import traceback
 
 memory = MemoryManager()
 
@@ -44,75 +45,93 @@ class AI(commands.Cog):
 
   @commands.Cog.listener()
   async def on_message(self, message):
-
     if message.author.bot:
-      return
+        return
 
     if self.bot.user not in message.mentions:
-      return
+        return
 
     prompt = (
-      message.content
-      .replace(f"<@{self.bot.user.id}>", "")
-      .strip()
+        message.content
+        .replace(f"<@{self.bot.user.id}>", "")
+        .strip()
     )
 
-    if not prompt:
-      return
-
     uploaded_files = []
+
     for attachment in message.attachments:
-      path = await save_attachment(attachment)
-      uploaded_files.append(path)
-  
-    print(uploaded_files)
+        try:
+            path = await save_attachment(attachment)
+            uploaded_files.append(path)
+            print(f"Saved attachment: {path}")
+        except Exception:
+            traceback.print_exc()
+
+    # 모델에게 업로드된 파일명을 알려준다.
+    if uploaded_files:
+        prompt += "\n\n업로드된 파일 목록입니다.\n"
+        prompt += "필요하면 read_file 도구를 사용하여 내용을 읽으세요.\n\n"
+
+        for path in uploaded_files:
+            prompt += f"- {path.name}\n"
+
     print(prompt)
 
     memory.add_message(
-      guild_id=message.guild.id,
-      channel_id=message.channel.id,
-      role="user",
-      content=prompt
+        guild_id=message.guild.id,
+        channel_id=message.channel.id,
+        role="user",
+        content=prompt
     )
 
     print(f"메모리 저장됨 user: {prompt}")
 
     history = memory.get_history(
-      guild_id=message.guild.id,
-      channel_id=message.channel.id,
-      limit=20
+        guild_id=message.guild.id,
+        channel_id=message.channel.id,
+        limit=20
     )
 
     print(history)
 
     async with message.channel.typing():
-      try:
-        result = await generate_response(history)
-      except Exception as e:
-        print(e)
-    
+        try:
+            result = await generate_response(history)
+        except Exception:
+            traceback.print_exc()
+            await message.reply("응답 생성 중 오류가 발생했습니다.")
+            return
+
     try:
-      files = []
-      for path in result["files"]:
-        files.append(discord.File(path))
-      await message.reply(result["message"][:1900],
-                          files=files if files else None)
-    except Exception as e:
-      print(e)
+        files = []
+
+        for path in result["files"]:
+            files.append(discord.File(path))
+
+        await message.reply(
+            result["message"][:1900],
+            files=files if files else None
+        )
+
+    except Exception:
+        traceback.print_exc()
 
     memory.add_message(
-      guild_id=message.guild.id,
-      channel_id=message.channel.id,
-      role="assistant",
-      content=result["message"]
+        guild_id=message.guild.id,
+        channel_id=message.channel.id,
+        role="assistant",
+        content=result["message"]
     )
 
     channel = self.bot.get_channel(1521059636751368322)
 
     if channel is not None:
         now = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S")
-        await channel.send(f"**지금까지 사용한 비용은 ${get_usage()}입니다.**\n"
-                        f"응답시간: `{now}`")
+
+        await channel.send(
+            f"**지금까지 사용한 비용은 ${get_usage()}입니다.**\n"
+            f"응답시간: `{now}`"
+        )
 
 async def setup(bot):
   await bot.add_cog(AI(bot))
