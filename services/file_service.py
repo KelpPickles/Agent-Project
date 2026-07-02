@@ -37,7 +37,7 @@ async def save_attachment(attachment) -> Path:
                 print(f"save attachment: 중복되지 않은 경로 : {save_path}")
                 break
 
-        index += 1
+            index += 1
 
     print(f"save attachment: {save_path}로 저장 시도")
     await attachment.save(save_path)
